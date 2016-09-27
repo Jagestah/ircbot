@@ -16,15 +16,20 @@ func main() {
 	printtt := func(event *irc.Event) {
 		fmt.Println(event.Message())
 		jagestah.SendRaw("CAP REQ :twitch.tv/membership")
+		jagestah.Join("#jagestah  ")
+		jagestah.Join("#rivalrybot  ")
+		jagestah.SendRaw("All your base R belong to me")
 		return
 		}
 	jagestah.Connect("irc.twitch.tv:6667")
         jagestah.Password = "oauth:t4wle77yx4fzfzhtmo0bfvccp01y8g"
-	jagestah.Join("#rivalrybot  ")
-	jagestah.Join("#jagestah  ")
+//	jagestah.Join("#rivalrybot  ")
+//	jagestah.Join("#jagestah  ")
         jagestah.AddCallback("JOIN", joined)
 	jagestah.AddCallback("PART", left)
 	jagestah.AddCallback("001", printtt)
+	jagestah.AddCallback("002", printtt)
+	jagestah.AddCallback("PRIVMSG", printtt)
 	jagestah.Loop()
 	<-make(chan struct{})
 return
