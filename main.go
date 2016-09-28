@@ -3,34 +3,29 @@ package main
 import irc "github.com/thoj/go-ircevent"
 import "fmt"
 
+var IRCserver = "irc.twitch.tv:6667"
 func main() {
-	jagestah := irc.IRC("rivalrybot", "rivalrybot")
+	con := irc.IRC("rivalrybot", "rivlarybot")
 	joined := func(event *irc.Event) {
-		jagestah.SendRaw("A user has joined")
-		fmt.Println("A user has joined the channel")
+		fmt.Println(event.Nick, "has joined the channel")
 		}
-	left := func(event *irc.Event) {
-		jagestah.SendRaw("A user has left")
-		fmt.Println("A user has left the channel")
-		}
-	printtt := func(event *irc.Event) {
-		fmt.Println(event.Message())
-		jagestah.SendRaw("CAP REQ :twitch.tv/membership")
-		jagestah.Join("#jagestah  ")
-		jagestah.Join("#rivalrybot  ")
-		jagestah.SendRaw("All your base R belong to me")
+	initCon := func(event *irc.Event) {
+		con.SendRaw("CAP REQ :twitch.tv/membership")
+		con.Join("#jagestah  ")
+		con.Join("#rivalrybot  ")
 		return
 		}
-	jagestah.Connect("irc.twitch.tv:6667")
-        jagestah.Password = "oauth:t4wle77yx4fzfzhtmo0bfvccp01y8g"
-//	jagestah.Join("#rivalrybot  ")
-//	jagestah.Join("#jagestah  ")
-        jagestah.AddCallback("JOIN", joined)
-	jagestah.AddCallback("PART", left)
-	jagestah.AddCallback("001", printtt)
-	jagestah.AddCallback("002", printtt)
-	jagestah.AddCallback("PRIVMSG", printtt)
-	jagestah.Loop()
+	printtt := func(event *irc.Event) {
+		fmt.Println(event.Nick,":", event.Message())
+		con.SendRaw("CAP REQ :twitch.tv/membership")
+		return
+		}
+	con.Connect(IRCserver)
+        con.Password = "oauth:t4wle77yx4fzfzhtmo0bfvccp01y8g"
+        con.AddCallback("JOIN", joined)
+	con.AddCallback("001", initCon)
+	con.AddCallback("PRIVMSG", printtt)
+	con.Loop()
 	<-make(chan struct{})
 return
 }
