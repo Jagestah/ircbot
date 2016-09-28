@@ -2,9 +2,9 @@ package main
 
 import irc "github.com/thoj/go-ircevent"
 import "fmt"
-//import "time"
-//import "io/ioutil"
-//import "strings"
+import "io/ioutil"
+import "strings"
+
 
 var IRCserver = "irc.twitch.tv:6667"
 func main() {
