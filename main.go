@@ -3,7 +3,6 @@ package main
 import irc "github.com/thoj/go-ircevent"
 import "fmt"
 import "github.com/fatih/color"
-//import "io/ioutil"
 import "strings"
 import "github.com/jmoiron/sqlx"
 import _"database/sql"
@@ -15,11 +14,12 @@ type User struct {
 	Username	string	`db:"username"`
 	Points		int		`db:"points"`
 }
+
 type Quote struct {
-	Qid			int 	`db:Qid`
-	Addedby		string	`db:Addedby`
-	Channel		string 	`db:Channel`
-	Quote 		string 	`db:Quote`
+	Qid			int 	`db:"qid"`
+	Addedby		string	`db:"addedby"`
+	Channel		string 	`db:"channel"`
+	Quote 		string 	`db:"quote"`
 }
 
 var IRCserver = "irc.twitch.tv:6667"
@@ -30,7 +30,7 @@ var con = irc.IRC("tyrannicalbot", "tyrannicalbot")	//The name of the bot's twit
 func main() {
 	con.Connect(IRCserver)
         con.Password = "oauth:1a8oxng9fiar2vq9rojhnj3fus14dx" //password for rivalrybot
-        con.AddCallback("JOIN", joined)	//event for when a user joins
+    con.AddCallback("JOIN", joined)	//event for when a user joins
 	con.AddCallback("001", initCon)	//event for when receiving welcome message from Twitch
 	con.AddCallback("PRIVMSG", printtt,)	//prints twitch chat to terminal
 	con.AddCallback("PRIVMSG", cmdCheck)
@@ -57,7 +57,7 @@ func cmdCheck(event *irc.Event) {
 		return
 	}
 	if strings.Contains(eventMessage, "!quote") == true {
-		eventMessage := string(event.Message())
+//		eventMessage := string(event.Message())
 		args := strings.Split(eventMessage, " ")
 		var channel = event.Arguments[0]
 		if len(args) == 1 {
@@ -68,21 +68,22 @@ func cmdCheck(event *irc.Event) {
 			var quote Quote
 			if strings.Contains(args[1], "add") {
 					db, err := sqlx.Connect("postgres", "host=localhost user=postgres dbname=twitchPoints password=mccork sslmode=disable parseTime=true")
-		if err != nil {
-			checkErr(err)
-		}
+						if err != nil {
+						checkErr(err)
+						}
 //				quote.Qid = 1
 				quote.Addedby = event.Nick
 				quote.Channel = channel
 				quote.Quote = args[2]
 				insertQuote, err := db.NamedExec(`INSERT INTO quotes (addedby, channel, quote) VALUES (:addedby, :channel, :quote)`, quote)
+					_ = insertQuote
 					if err != nil {
 						fmt.Println("Failed to add quote.\n",quote)
 						fmt.Println(err)
 						return
 
 					} else {
-						fmt.Println("Added quote", insertQuote)
+						fmt.Println("Added quote")
 						quote = quotes[0]
 						return
 					}
@@ -90,6 +91,7 @@ func cmdCheck(event *irc.Event) {
 		}
 	}
 }
+
 func printtt(event *irc.Event) {
 	color.Set(color.FgYellow)
 	var channel = event.Arguments[0]
@@ -133,14 +135,5 @@ func joined(event *irc.Event) {
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
-	}
-}
-
-func quote(event *irc.Event) {
-		eventMessage := string(event.Message())
-	args := strings.Split(eventMessage, " ")
-//	var channel = event.Arguments[0]
-	if len(args) == 1 {
-		fmt.Println("This is a Quote")
 	}
 }
