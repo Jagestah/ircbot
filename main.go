@@ -7,6 +7,7 @@ import "strings"
 import "github.com/jmoiron/sqlx"
 import _"database/sql"
 import _"github.com/bmizerany/pq"
+import "math/rand"
 
 
 //Creates a 1 to 1 association between fields and the database
@@ -49,48 +50,79 @@ func initCon(event *irc.Event) {
 func cmdCheck(event *irc.Event) {
 	var channel = event.Arguments[0]
 	var quotes []Quote
+	var quote Quote
+	db, err := sqlx.Connect("postgres", "host=localhost user=postgres dbname=twitchPoints password=mccork sslmode=disable parseTime=true")
 	eventMessage := string(event.Message())
+	args := strings.Split(eventMessage, " ")
 
 	if strings.Contains(eventMessage, "!wut") == true { //checks chat messages for !wut command
 		con.Privmsg(channel, "You dun did it.")
 		fmt.Println("Sending command for !wut")
 		return
-	}
-	if strings.Contains(eventMessage, "!quote") == true {
-//		eventMessage := string(event.Message())
-		args := strings.Split(eventMessage, " ")
+	} else if strings.Contains(eventMessage, "!quote") == true {
 		var channel = event.Arguments[0]
 		if len(args) == 1 {
-			con.Privmsg(channel, "This is a Quote")
-			fmt.Println("Sending command for !quote")
-		}
-		if len(args) > 1 {
-			var quote Quote
-			if strings.Contains(args[1], "add") {
-					db, err := sqlx.Connect("postgres", "host=localhost user=postgres dbname=twitchPoints password=mccork sslmode=disable parseTime=true")
-						if err != nil {
-						checkErr(err)
-						}
-//				quote.Qid = 1
-				quote.Addedby = event.Nick
-				quote.Channel = channel
-				quote.Quote = args[2]
-				insertQuote, err := db.NamedExec(`INSERT INTO quotes (addedby, channel, quote) VALUES (:addedby, :channel, :quote)`, quote)
-					_ = insertQuote
+				var count int
+				quoteCount := db.Get(&count, `SELECT count(*) FROM quotes`)
+				_ = quoteCount
 					if err != nil {
-						fmt.Println("Failed to add quote.\n",quote)
-						fmt.Println(err)
-						return
-
-					} else {
-						fmt.Println("Added quote")
-						quote = quotes[0]
-						return
+						checkErr(err)
 					}
+				count = rand.Intn(count) - 1
+				fmt.Println((count) + 1)
+		} else if len(args) == 2 {
+ 			if strings.ContainsAny(args[1], "1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9")  == true {
+				quoteGet := db.Select(&quotes, `SELECT quote FROM quotes WHERE qid = $1 AND channel = $2`, args[1], channel)
+					if len(quotes) > 0 {
+					fmt.Sprint(quoteGet)
+					quoteOut := quotes[0].Quote
+					fmt.Println("Sending,",quoteOut,"to channel for !quote cmd")
+					con.Privmsg(channel, quoteOut)
+					quote = quotes[0]
+					return
+					} else {
+					fmt.Println("Quote not found")
+					con.Privmsg(channel, "Quote not found.")
+					return
+					}
+				}  else if strings.Contains(args[1], "?") {
+				fmt.Println("Sending !quote syntax")
+				con.Privmsg(channel, `For quotes use !quote <#> or !quote "add"`)
+				return
 			}
 		}
+		if len(args) > 2 {
+
+				if strings.Contains(args[1], "add") {		
+						if err != nil {
+						checkErr(err)
+						return
+						}
+					quoteSplit := strings.Split(eventMessage, "!quote add ")
+					quote.Addedby = event.Nick
+					quote.Channel = channel
+					quote.Quote = quoteSplit[1]
+					insertQuote, err := db.NamedExec(`INSERT INTO quotes (addedby, channel, quote) VALUES (:addedby, :channel, :quote)`, quote)
+					_ = insertQuote
+						if err != nil {
+						fmt.Println("Failed to add quote.\n")
+						fmt.Println(err)
+						return
+					} else if len(quotes) > 0 {
+							getQid := db.Select(&quotes, `SELECT qid FROM quotes WHERE quote = $1`, quoteSplit[1])
+							addReply := fmt.Sprint("Added quote '",quoteSplit[1],"' with quote ID ",quotes[0].Qid)
+								if err != nil {
+									checkErr(err)
+								}
+							fmt.Println(addReply)
+							con.Privmsg(channel, addReply)
+							fmt.Println(getQid)
+							return
+							}	
+					}
+				}
+			}
 	}
-}
 
 func printtt(event *irc.Event) {
 	color.Set(color.FgYellow)
